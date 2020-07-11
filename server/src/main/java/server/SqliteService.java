@@ -8,6 +8,7 @@ public class SqliteService {
     private static Statement stmt;
     private static PreparedStatement psSelect;
     private static PreparedStatement psSelectNick;
+    private static PreparedStatement psSelectLogin;
     private static PreparedStatement psInsert;
     private static PreparedStatement psUpdate;
     private static PreparedStatement psSelectMsg;
@@ -37,6 +38,7 @@ public class SqliteService {
         psSelect = connection.prepareStatement("SELECT u.id, u.name, u.login, u.password, g.privilege FROM users u LEFT JOIN groups g ON u.group_id = g.id " +
                 "WHERE u.login = ? AND u.password = ? AND u.archive = false;");
         psSelectNick = connection.prepareStatement("SELECT name FROM users WHERE name = ? AND archive = false;");
+        psSelectLogin = connection.prepareStatement("SELECT login FROM users WHERE login = ? AND archive = false;");
         psInsert = connection.prepareStatement("INSERT INTO users(login,password,name) VALUES (?,?,?);");
         psUpdate = connection.prepareStatement("UPDATE users SET name = ? WHERE id = ?;");
         psInsertMsg = connection.prepareStatement("INSERT INTO message(user_id,receiving_id,text) VALUES (?,?,?);");
@@ -49,6 +51,17 @@ public class SqliteService {
         boolean checked = false;
         psSelectNick.setString(1, nickname);
         ResultSet rs = psSelectNick.executeQuery();
+        while (rs.next()) {
+            checked = true;
+        }
+        rs.close();
+        return checked;
+    }
+
+    public static boolean checkLogin(String nickname) throws SQLException {
+        boolean checked = false;
+        psSelectLogin.setString(1, nickname);
+        ResultSet rs = psSelectLogin.executeQuery();
         while (rs.next()) {
             checked = true;
         }

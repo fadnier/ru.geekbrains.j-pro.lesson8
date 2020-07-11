@@ -8,10 +8,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.ListView;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
@@ -25,18 +22,13 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 
 public class Controller implements Initializable {
     @FXML
     public TextArea textArea;
     @FXML
     public TextField textField;
-    @FXML
-    public HBox authPanel;
-    @FXML
-    public TextField loginField;
-    @FXML
-    public PasswordField passwordField;
     @FXML
     public HBox msgPanel;
     @FXML
@@ -45,12 +37,18 @@ public class Controller implements Initializable {
     public TextField nickNameArea;
 
     Stage regStage;
+    Stage authStage;
+
+    LoginFormController loginFormController;
+    RegController regController;
+
+    private static final Logger logger = Logger.getLogger(Controller.class.getName());
 
     Socket socket;
     DataInputStream in;
     DataOutputStream out;
 
-    final String IP_ADDRESS = "localhost";
+    private String IP_ADDRESS = "localhost";
     final int PORT = 8189;
 
     private boolean authenticated;
@@ -59,8 +57,6 @@ public class Controller implements Initializable {
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
-        authPanel.setVisible(!authenticated);
-        authPanel.setManaged(!authenticated);
         msgPanel.setManaged(authenticated);
         msgPanel.setVisible(authenticated);
         clientList.setVisible(authenticated);
@@ -80,13 +76,16 @@ public class Controller implements Initializable {
         setAuthenticated(false);
 
         regStage = createRegWindow();
+        authStage = createAuthWindow();
+
+        authStage.show();
 
         Platform.runLater(() -> {
             Stage stage = (Stage) textField.getScene().getWindow();
             stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
                 @Override
                 public void handle(WindowEvent event) {
-                    System.out.println("bue");
+                    logger.info("bue");
                     if (socket != null && !socket.isClosed()) {
                         try {
                             out.writeUTF("/end");
@@ -111,7 +110,7 @@ public class Controller implements Initializable {
                     while (true) {
                         String str = in.readUTF();
 
-                        System.out.println(str);
+                        logger.fine(str);
 
                         if (str.equals("/end")) {
                             throw new RuntimeException();
@@ -120,11 +119,27 @@ public class Controller implements Initializable {
                         if (str.startsWith("/authok ")) {
                             nick = str.split(" ")[1];
                             setAuthenticated(true);
-                            HistoryChat.load(login, textArea);
+                            //HistoryChat.load(login, textArea);
+                            Platform.runLater(()->{
+                                authStage.hide();
+                                Main.getPrimaryStage().show();
+                            });
+
                             break;
                         }
-
-                        textArea.appendText(str + "\n");
+                        if (str.startsWith("/regok ")) {
+                            String nickname = str.split(" ")[1];
+                            Platform.runLater(()->{
+                                regStage.hide();
+                                loginFormController.setLoginField(nickname);
+                            });
+                        }
+                        if (str.startsWith("/regfalse ")) {
+                            Platform.runLater(()-> regController.setAnswerServer(str.split(" ",2)[1]));
+                        }
+                        if (str.startsWith("/authfalse ")) {
+                            Platform.runLater(()-> loginFormController.setAnswerServer(str.split(" ",2)[1]));
+                        }
                     }
 
                     //цикл работы
@@ -152,11 +167,11 @@ public class Controller implements Initializable {
                         }
                     }
                 }catch (RuntimeException e){
-                    System.out.println("re");
+                    logger.warning("Ошибка ");
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
-                    System.out.println("мы отключились");
+                    logger.info("мы отключились");
                     setAuthenticated(false);
                     try {
                         socket.close();
@@ -180,15 +195,16 @@ public class Controller implements Initializable {
         }
     }
 
-    public void tryToAuth(ActionEvent actionEvent) {
+    public void tryToAuth(String login, String password, String host) {
+        this.IP_ADDRESS = host;
+
         if (socket == null || socket.isClosed()) {
             connect();
         }
-
         try {
-            out.writeUTF("/auth " + loginField.getText().trim() + " " + passwordField.getText().trim());
-            passwordField.clear();
-            login = loginField.getText().trim();
+            logger.info("/auth " + login + " " + password);
+            out.writeUTF("/auth " + login + " " + password);
+            this.login = login;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -202,7 +218,7 @@ public class Controller implements Initializable {
     }
 
     public void clickClientList(MouseEvent mouseEvent) {
-        System.out.println(clientList.getSelectionModel().getSelectedItem());
+        logger.info(clientList.getSelectionModel().getSelectedItem());
         String receiver = clientList.getSelectionModel().getSelectedItem();
         textField.setText("/w " + receiver + " ");
     }
@@ -216,11 +232,11 @@ public class Controller implements Initializable {
 
             stage = new Stage();
             stage.setTitle("Registration ");
-            stage.setScene(new Scene(root, 300, 200));
+            stage.setScene(new Scene(root, 350, 200));
             stage.initStyle(StageStyle.UTILITY);
             stage.initModality(Modality.APPLICATION_MODAL);
 
-            RegController regController = fxmlLoader.getController();
+            regController = fxmlLoader.getController();
             regController.controller = this;
 
         } catch (IOException e) {
@@ -230,7 +246,30 @@ public class Controller implements Initializable {
         return stage;
     }
 
-    public void showRegWindow(ActionEvent actionEvent) {
+    private Stage createAuthWindow() {
+        Stage stage = null;
+
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/login.fxml"));
+            Parent root = fxmlLoader.load();
+
+            stage = new Stage();
+            stage.setTitle("Авторизация");
+            stage.setScene(new Scene(root, 350, 200));
+            stage.initStyle(StageStyle.UTILITY);
+            stage.initModality(Modality.APPLICATION_MODAL);
+
+            loginFormController = fxmlLoader.getController();
+            loginFormController.controller = this;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return stage;
+    }
+
+    public void showRegWindow() {
         regStage.show();
     }
 

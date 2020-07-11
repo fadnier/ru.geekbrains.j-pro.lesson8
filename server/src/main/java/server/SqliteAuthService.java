@@ -35,6 +35,9 @@ public class SqliteAuthService implements AuthService {
     @Override
     public boolean registration(String login, String password, String nickname) {
         try {
+            if(SqliteService.checkNickname(nickname) || SqliteService.checkLogin(login)) {
+                return false;
+            }
             SqliteService.insUser(login,password,nickname);
             return true;
         } catch (Exception e) {

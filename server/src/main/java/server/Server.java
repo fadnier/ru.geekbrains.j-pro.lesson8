@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -89,12 +90,12 @@ public class Server {
         clients.add(clientHandler);
         broadcastClientList();
 
-        /*
+
         Map<Integer,String> msg = messageService.getAllMessage(clientHandler.getId());
 
         for (Map.Entry<Integer,String> entry: msg.entrySet()) {
             clientHandler.sendMsg(entry.getValue());
-        }*/
+        }
     }
 
     public void unsubscribe(ClientHandler clientHandler) {
