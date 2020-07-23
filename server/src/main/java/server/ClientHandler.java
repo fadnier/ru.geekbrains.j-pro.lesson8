@@ -49,9 +49,9 @@ public class ClientHandler {
                                     .getAuthService()
                                     .registration(token[1], token[2], token[3]);
                             if (succeed) {
-                                sendMsg("Регистрация прошла успешно");
+                                sendMsg("/regok "+token[1]+" Регистрация прошла успешно");
                             } else {
-                                sendMsg("Регистрация  не удалась. \n" +
+                                sendMsg("/regfalse Регистрация  не удалась. \n" +
                                         "Возможно логин уже занят, или данные содержат пробел");
                             }
                         }
@@ -80,10 +80,10 @@ public class ClientHandler {
                                     socket.setSoTimeout(0);
                                     break;
                                 } else {
-                                    sendMsg("С этим логином уже прошли аутентификацию");
+                                    sendMsg("/authfalse С этим логином уже прошли аутентификацию");
                                 }
                             } else {
-                                sendMsg("Неверный логин / пароль");
+                                sendMsg("/authfalse Неверный логин / пароль");
                             }
                         }
                     }

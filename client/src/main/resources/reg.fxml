@@ -11,6 +11,7 @@
     <Label text="Nickname:"/>
     <TextField fx:id="nickField" promptText="nickname"/>
 
+    <Label fx:id="answerServer" style="-fx-text-fill:red;"></Label>
     <Button text="Зарегистрироваться" onAction="#clickOk"/>
 
 </VBox>
